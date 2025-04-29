@@ -28,9 +28,8 @@ Text to summarize:
 `,
     linkedin_post: `
 You are a professional LinkedIn content writer. Create a LinkedIn post summarizing the following content.
-
 - Begin with an attention-grabbing headline.
-- Write 2-3 paragraphs that highlight key points.
+- summarize the long content into short pofessional tone content 
 - End with a call to action or thought-provoking conclusion.
 - Write in a professional, engaging tone.
 - Use relevant hashtags at the end.
