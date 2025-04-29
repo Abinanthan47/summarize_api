@@ -45,6 +45,7 @@ You are a Twitter content creator. Write a Twitter thread summarizing the follow
 - Number the tweets sequentially (e.g., 1/4, 2/4, etc.).
 - Add relevant emojis to make the thread more engaging.
 - Ensure each tweet is concise and easy to understand.
+- Format your response as plain text with each tweet on its own paragraph.
 
 Text to summarize:
 """${content}"""
@@ -72,10 +73,38 @@ Text to summarize:
 
     if (format === 'twitter_thread') {
       try {
+        // First try to parse as JSON
         const parsed = JSON.parse(cleaned);
-        return res.status(200).json({ summaries: parsed });
+        return res.status(200).json({ 
+          summaries: {
+            twitter_thread: parsed.twitter_thread || parsed
+          }
+        });
       } catch (e) {
-        return res.status(500).json({ error: 'Invalid JSON from AI', raw: cleaned });
+        // If JSON parsing fails, try to parse as plain text thread
+        
+        // Split by double newlines to get paragraphs
+        let tweets = cleaned.split(/\n{2,}/).filter(t => t.trim().length > 0);
+        
+        // If that doesn't work well, try splitting by numbered pattern
+        if (tweets.length <= 1) {
+          // Try to extract numbered tweets with regex
+          const tweetRegex = /(\d+\/\d+.+?)(?=\n*\d+\/\d+|$)/gs;
+          const matches = [...cleaned.matchAll(tweetRegex)];
+          
+          if (matches.length > 0) {
+            tweets = matches.map(match => match[0].trim());
+          } else {
+            // Last resort: just split by newlines
+            tweets = cleaned.split('\n').filter(t => t.trim().length > 0);
+          }
+        }
+        
+        return res.status(200).json({
+          summaries: {
+            twitter_thread: tweets
+          }
+        });
       }
     } else {
       return res.status(200).json({
