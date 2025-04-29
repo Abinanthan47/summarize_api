@@ -9,10 +9,10 @@ export default async function handler(req, res) {
   }
 
   // API Key Authentication
-  const clientKey = req.headers['x-api-key'];
-  if (process.env.CLIENT_API_KEY && clientKey !== process.env.CLIENT_API_KEY) {
-    return res.status(403).json({ error: 'Unauthorized' });
-  }
+const clientKey = req.headers['x-api-key'] || req.headers['x-rapidapi-key'];
+if (process.env.CLIENT_API_KEY && clientKey !== process.env.CLIENT_API_KEY) {
+  return res.status(403).json({ error: 'Unauthorized' });
+}
 
   const { content, format = 'abstract' } = req.body;
   const allowedFormats = ['abstract', 'linkedin_post', 'twitter_thread'];
