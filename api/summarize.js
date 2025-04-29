@@ -9,10 +9,14 @@ export default async function handler(req, res) {
   }
 
   // API Key Authentication: Accept both x-api-key and x-rapidapi-key
-  const clientKey = req.headers['x-api-key'] || req.headers['x-rapidapi-key'];
-  if (process.env.CLIENT_API_KEY && clientKey !== process.env.CLIENT_API_KEY) {
-    return res.status(403).json({ error: 'Unauthorized' });
-  }
+ const isRapidAPI = !!req.headers['x-rapidapi-proxy-secret'] || !!req.headers['x-rapidapi-host'];
+const clientKey = req.headers['x-api-key'] || req.headers['x-rapidapi-key'];
+
+// Allow all RapidAPI traffic, but require CLIENT_API_KEY for direct calls
+if (!isRapidAPI && process.env.CLIENT_API_KEY && clientKey !== process.env.CLIENT_API_KEY) {
+  return res.status(403).json({ error: 'Unauthorized' });
+}
+
 
   const { content, format = 'abstract' } = req.body;
   const allowedFormats = ['abstract', 'linkedin_post', 'twitter_thread'];
