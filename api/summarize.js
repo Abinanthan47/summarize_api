@@ -3,20 +3,9 @@ import { GoogleGenAI } from '@google/genai';
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 export default async function handler(req, res) {
-  // Check for POST method
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
-
-  // API Key Authentication: Accept both x-api-key and x-rapidapi-key
- const isRapidAPI = !!req.headers['x-rapidapi-proxy-secret'] || !!req.headers['x-rapidapi-host'];
-const clientKey = req.headers['x-api-key'] || req.headers['x-rapidapi-key'];
-
-// Allow all RapidAPI traffic, but require CLIENT_API_KEY for direct calls
-if (!isRapidAPI && process.env.CLIENT_API_KEY && clientKey !== process.env.CLIENT_API_KEY) {
-  return res.status(403).json({ error: 'Unauthorized' });
-}
-
 
   const { content, format = 'abstract' } = req.body;
   const allowedFormats = ['abstract', 'linkedin_post', 'twitter_thread'];
@@ -25,7 +14,6 @@ if (!isRapidAPI && process.env.CLIENT_API_KEY && clientKey !== process.env.CLIEN
     return res.status(400).json({ error: `content and format (${allowedFormats.join(', ')}) are required` });
   }
 
-  // Refined Prompt Templates
   const prompts = {
     abstract: `
 You are an AI summarizer that condenses lengthy documents into clear, concise, and accurate summaries, keeping only the most important details.
@@ -47,17 +35,6 @@ You are a professional LinkedIn content writer. Create a LinkedIn post summarizi
 - Write in a professional, engaging tone.
 - Use relevant hashtags at the end.
 
-Format like this example:
-"""
-The Growing Importance of Automatic Summarization in the Age of Information Overload
-
-With the increasing volume of digital content, summarization tools have become essential. These systems use advanced AI to distill long documents into concise, actionable insights—saving time for busy professionals.
-
-Automatic summarization plays a critical role in everything from search engines to research tools, ensuring that the most important information is always accessible in a fraction of the time.
-
-#AI #MachineLearning #Summarization #BusinessEfficiency #InformationOverload
-"""
-
 Text to summarize:
 """${content}"""
 `,
@@ -69,20 +46,9 @@ You are a Twitter content creator. Write a Twitter thread summarizing the follow
 - Add relevant emojis to make the thread more engaging.
 - Ensure each tweet is concise and easy to understand.
 
-Format like this example:
-"""
-{
-  "twitter_thread": [
-    "1/ Summarization tools are transforming how we digest vast amounts of information. 🧠📚",
-    "2/ With AI, we can condense long articles into bite-sized summaries that retain key points. 🔑💡",
-    "3/ From research to business intelligence, AI summarization is becoming indispensable in many fields. 🔍📊"
-  ]
-}
-"""
-
 Text to summarize:
 """${content}"""
-`,
+`
   };
 
   try {
@@ -91,7 +57,6 @@ Text to summarize:
     const config = { responseMimeType: 'text/plain' };
     const contents = [{ role: 'user', parts: [{ text: prompt }] }];
 
-    // Fetching the response from the AI model
     const response = await ai.models.generateContentStream({ model, config, contents });
 
     let result = '';
@@ -99,17 +64,15 @@ Text to summarize:
       result += chunk.text;
     }
 
-    // Post-processing: Clean up the AI response
     const cleaned = result
-      .replace(/^(\*\*?Summary:?\*\*?|\*Summary:|\s*Summary:)\s*/i, '') // remove 'Summary:' label
-      .replace(/```json\n?/g, '') // strip code blocks
-      .replace(/```/g, '') // remove any extra code block markers
+      .replace(/^(\*\*?Summary:?\*\*?|\*Summary:|\s*Summary:)\s*/i, '')
+      .replace(/```json\n?/g, '')
+      .replace(/```/g, '')
       .trim();
 
-    // Handling Twitter Thread format
     if (format === 'twitter_thread') {
       try {
-        const parsed = JSON.parse(cleaned); // Parsing JSON response for Twitter thread
+        const parsed = JSON.parse(cleaned);
         return res.status(200).json({ summaries: parsed });
       } catch (e) {
         return res.status(500).json({ error: 'Invalid JSON from AI', raw: cleaned });
