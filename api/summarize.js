@@ -1,34 +1,19 @@
-const express = require('express');
-const cors = require('cors');
-const rateLimit = require('express-rate-limit');
-const { GoogleGenAI } = require('@google/genai');
-require('dotenv').config();
+import { GoogleGenAI } from '@google/genai';
 
-const app = express();
-app.use(cors());
-app.use(express.json());
-
-// Rate Limiting
-const limiter = rateLimit({
-  windowMs: 60 * 1000,
-  max: 20,
-});
-app.use(limiter);
-
-// API Key Auth
-app.use((req, res, next) => {
-  const clientKey = req.headers['x-api-key'];
-  if (clientKey !== process.env.CLIENT_API_KEY) {
-    return res.status(403).json({ error: 'Unauthorized' });
-  }
-  next();
-});
-
-// Init Gemini
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-// Routes
-app.post('/summarize', async (req, res) => {
+export default async function handler(req, res) {
+  // Check for POST method
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  // API Key Authentication
+  const clientKey = req.headers['x-api-key'];
+  if (process.env.CLIENT_API_KEY && clientKey !== process.env.CLIENT_API_KEY) {
+    return res.status(403).json({ error: 'Unauthorized' });
+  }
+
   const { content, format = 'abstract' } = req.body;
   const allowedFormats = ['abstract', 'linkedin_post', 'twitter_thread'];
 
@@ -121,12 +106,12 @@ Text to summarize:
     if (format === 'twitter_thread') {
       try {
         const parsed = JSON.parse(cleaned); // Parsing JSON response for Twitter thread
-        return res.json({ summaries: parsed });
+        return res.status(200).json({ summaries: parsed });
       } catch (e) {
         return res.status(500).json({ error: 'Invalid JSON from AI', raw: cleaned });
       }
     } else {
-      return res.json({
+      return res.status(200).json({
         summaries: {
           [format]: cleaned,
         },
@@ -137,8 +122,4 @@ Text to summarize:
     console.error('API Error:', error);
     return res.status(500).json({ error: 'Something went wrong' });
   }
-});
-
-// Start Server
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
+}
