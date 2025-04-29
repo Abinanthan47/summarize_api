@@ -8,11 +8,11 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // API Key Authentication
-const clientKey = req.headers['x-api-key'] || req.headers['x-rapidapi-key'];
-if (process.env.CLIENT_API_KEY && clientKey !== process.env.CLIENT_API_KEY) {
-  return res.status(403).json({ error: 'Unauthorized' });
-}
+  // API Key Authentication: Accept both x-api-key and x-rapidapi-key
+  const clientKey = req.headers['x-api-key'] || req.headers['x-rapidapi-key'];
+  if (process.env.CLIENT_API_KEY && clientKey !== process.env.CLIENT_API_KEY) {
+    return res.status(403).json({ error: 'Unauthorized' });
+  }
 
   const { content, format = 'abstract' } = req.body;
   const allowedFormats = ['abstract', 'linkedin_post', 'twitter_thread'];
